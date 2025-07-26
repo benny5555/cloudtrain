@@ -113,7 +113,7 @@ def submit(ctx, job_spec_file: str, provider: Optional[str], dry_run: bool):
             sys.exit(1)
 
         async with CloudTrainingAPI(config_manager=config_manager) as api:
-            available_providers = await api.get_available_providers()
+            available_providers = api.get_available_providers()
 
             if not available_providers:
                 console.print(

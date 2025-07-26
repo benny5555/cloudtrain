@@ -48,47 +48,41 @@ class TestBaseProviderConfig:
         assert config.max_retries == 5
         assert config.retry_delay == 2.0
 
-    def test_validation_timeout_bounds(self):
-        """Test timeout validation bounds."""
-        # Valid timeout
-        config = BaseProviderConfig(timeout=300)
-        assert config.timeout == 300
+    @pytest.mark.parametrize("valid_timeout", [1, 300, 1800, 3600])
+    def test_validation_timeout_valid(self, valid_timeout):
+        """Test valid timeout values."""
+        config = BaseProviderConfig(timeout=valid_timeout)
+        assert config.timeout == valid_timeout
 
-        # Invalid timeout - too low
+    @pytest.mark.parametrize("invalid_timeout", [0, -1, 4000, 5000])
+    def test_validation_timeout_invalid(self, invalid_timeout):
+        """Test invalid timeout values."""
         with pytest.raises(ValidationError):
-            BaseProviderConfig(timeout=0)
+            BaseProviderConfig(timeout=invalid_timeout)
 
-        # Invalid timeout - too high
+    @pytest.mark.parametrize("valid_max_retries", [0, 1, 5, 10])
+    def test_validation_max_retries_valid(self, valid_max_retries):
+        """Test valid max_retries values."""
+        config = BaseProviderConfig(max_retries=valid_max_retries)
+        assert config.max_retries == valid_max_retries
+
+    @pytest.mark.parametrize("invalid_max_retries", [-1, -5, 15, 20])
+    def test_validation_max_retries_invalid(self, invalid_max_retries):
+        """Test invalid max_retries values."""
         with pytest.raises(ValidationError):
-            BaseProviderConfig(timeout=4000)
+            BaseProviderConfig(max_retries=invalid_max_retries)
 
-    def test_validation_max_retries_bounds(self):
-        """Test max_retries validation bounds."""
-        # Valid max_retries
-        config = BaseProviderConfig(max_retries=5)
-        assert config.max_retries == 5
+    @pytest.mark.parametrize("valid_retry_delay", [0.1, 1.0, 5.0, 30.0])
+    def test_validation_retry_delay_valid(self, valid_retry_delay):
+        """Test valid retry_delay values."""
+        config = BaseProviderConfig(retry_delay=valid_retry_delay)
+        assert config.retry_delay == valid_retry_delay
 
-        # Invalid max_retries - too low
+    @pytest.mark.parametrize("invalid_retry_delay", [0.05, 0.0, 100.0, 200.0])
+    def test_validation_retry_delay_invalid(self, invalid_retry_delay):
+        """Test invalid retry_delay values."""
         with pytest.raises(ValidationError):
-            BaseProviderConfig(max_retries=-1)
-
-        # Invalid max_retries - too high
-        with pytest.raises(ValidationError):
-            BaseProviderConfig(max_retries=15)
-
-    def test_validation_retry_delay_bounds(self):
-        """Test retry_delay validation bounds."""
-        # Valid retry_delay
-        config = BaseProviderConfig(retry_delay=5.0)
-        assert config.retry_delay == 5.0
-
-        # Invalid retry_delay - too low
-        with pytest.raises(ValidationError):
-            BaseProviderConfig(retry_delay=0.05)
-
-        # Invalid retry_delay - too high
-        with pytest.raises(ValidationError):
-            BaseProviderConfig(retry_delay=100.0)
+            BaseProviderConfig(retry_delay=invalid_retry_delay)
 
     def test_is_valid_enabled_with_region(self):
         """Test is_valid returns True when enabled and has region."""

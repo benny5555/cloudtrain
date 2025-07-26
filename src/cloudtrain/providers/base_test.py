@@ -148,20 +148,23 @@ class ConcreteProvider(BaseCloudProvider):
         ]
 
 
-class TestBaseCloudProvider:
-    """Test BaseCloudProvider abstract base class."""
+# Shared fixtures for BaseCloudProvider tests
+@pytest.fixture
+def mock_config_manager():
+    """Create a mock configuration manager."""
+    config_manager = Mock()
+    config_manager.get_provider_config.return_value = {"test": "config"}
+    return config_manager
 
-    @pytest.fixture
-    def mock_config_manager(self):
-        """Create a mock configuration manager."""
-        config_manager = Mock()
-        config_manager.get_provider_config.return_value = {"test": "config"}
-        return config_manager
 
-    @pytest.fixture
-    def provider(self, mock_config_manager):
-        """Create a concrete provider instance for testing."""
-        return ConcreteProvider(mock_config_manager)
+@pytest.fixture
+def provider(mock_config_manager):
+    """Create a concrete provider instance for testing."""
+    return ConcreteProvider(mock_config_manager)
+
+
+class TestBaseCloudProviderInitialization:
+    """Test BaseCloudProvider initialization and basic properties."""
 
     def test_provider_initialization(self, provider):
         """Test provider initialization."""
@@ -169,6 +172,22 @@ class TestBaseCloudProvider:
         assert provider.is_authenticated is False
         assert provider._client is None
         assert provider._config == {"test_config": "value"}
+
+    def test_str_representation(self, provider):
+        """Test string representation of provider."""
+        result = str(provider)
+        assert result == "ConcreteProvider(mock)"
+
+    def test_repr_representation(self, provider):
+        """Test detailed string representation of provider."""
+        result = repr(provider)
+        assert "ConcreteProvider" in result
+        assert "provider_type=mock" in result
+        assert "is_authenticated=False" in result
+
+
+class TestBaseCloudProviderAuthentication:
+    """Test BaseCloudProvider authentication functionality."""
 
     @pytest.mark.asyncio
     async def test_ensure_authenticated_when_not_authenticated(self, provider):
@@ -195,6 +214,21 @@ class TestBaseCloudProvider:
 
             mock_auth.assert_not_called()
             assert provider.is_authenticated is True
+
+    @pytest.mark.asyncio
+    async def test_close(self, provider):
+        """Test provider cleanup."""
+        provider.is_authenticated = True
+        provider._client = Mock()
+
+        await provider.close()
+
+        assert provider.is_authenticated is False
+        assert provider._client is None
+
+
+class TestBaseCloudProviderValidation:
+    """Test BaseCloudProvider job specification validation."""
 
     def test_validate_job_spec_valid(self, provider):
         """Test job spec validation with valid specification."""
@@ -258,27 +292,47 @@ class TestBaseCloudProvider:
                 ),
             )
 
-    def test_map_instance_type_standard(self, provider):
+
+class TestBaseCloudProviderMapping:
+    """Test BaseCloudProvider instance type and status mapping."""
+
+    @pytest.mark.parametrize(
+        "instance_type,expected",
+        [
+            (InstanceType.CPU_SMALL, "mock.cpu_small"),
+            (InstanceType.CPU_MEDIUM, "mock.cpu_medium"),
+            (InstanceType.CPU_LARGE, "mock.cpu_large"),
+            (InstanceType.GPU_SMALL, "mock.gpu_small"),
+            (InstanceType.GPU_MEDIUM, "mock.gpu_medium"),
+            (InstanceType.GPU_LARGE, "mock.gpu_large"),
+        ],
+    )
+    def test_map_instance_type_standard(self, provider, instance_type, expected):
         """Test mapping standard instance types."""
-        assert provider._map_instance_type(InstanceType.CPU_SMALL) == "mock.cpu_small"
-        assert provider._map_instance_type(InstanceType.CPU_MEDIUM) == "mock.cpu_medium"
-        assert provider._map_instance_type(InstanceType.CPU_LARGE) == "mock.cpu_large"
-        assert provider._map_instance_type(InstanceType.GPU_SMALL) == "mock.gpu_small"
-        assert provider._map_instance_type(InstanceType.GPU_MEDIUM) == "mock.gpu_medium"
-        assert provider._map_instance_type(InstanceType.GPU_LARGE) == "mock.gpu_large"
+        assert provider._map_instance_type(instance_type) == expected
 
     def test_map_instance_type_custom(self, provider):
         """Test mapping custom instance type."""
         result = provider._map_instance_type(InstanceType.CUSTOM, "custom.huge")
         assert result == "custom.huge"
 
-    def test_map_job_status(self, provider):
+    @pytest.mark.parametrize(
+        "provider_status,expected",
+        [
+            ("running", JobStatus.RUNNING),
+            ("completed", JobStatus.COMPLETED),
+            ("failed", JobStatus.FAILED),
+            ("pending", JobStatus.PENDING),
+            ("unknown_status", JobStatus.UNKNOWN),
+        ],
+    )
+    def test_map_job_status(self, provider, provider_status, expected):
         """Test mapping provider-specific job statuses."""
-        assert provider._map_job_status("running") == JobStatus.RUNNING
-        assert provider._map_job_status("completed") == JobStatus.COMPLETED
-        assert provider._map_job_status("failed") == JobStatus.FAILED
-        assert provider._map_job_status("pending") == JobStatus.PENDING
-        assert provider._map_job_status("unknown_status") == JobStatus.UNKNOWN
+        assert provider._map_job_status(provider_status) == expected
+
+
+class TestBaseCloudProviderJobOperations:
+    """Test BaseCloudProvider job operations (submit, status, cancel, list)."""
 
     @pytest.mark.asyncio
     async def test_submit_job_success(self, provider):
@@ -426,26 +480,3 @@ class TestBaseCloudProvider:
 
             with pytest.raises(ProviderError, match="Job listing failed"):
                 await provider.list_jobs()
-
-    @pytest.mark.asyncio
-    async def test_close(self, provider):
-        """Test provider cleanup."""
-        provider.is_authenticated = True
-        provider._client = Mock()
-
-        await provider.close()
-
-        assert provider.is_authenticated is False
-        assert provider._client is None
-
-    def test_str_representation(self, provider):
-        """Test string representation of provider."""
-        result = str(provider)
-        assert result == "ConcreteProvider(mock)"
-
-    def test_repr_representation(self, provider):
-        """Test detailed string representation of provider."""
-        result = repr(provider)
-        assert "ConcreteProvider" in result
-        assert "provider_type=mock" in result
-        assert "is_authenticated=False" in result

@@ -155,13 +155,32 @@ class TestTrainingJobSpec:
         assert spec.description == "Test training job"
         assert spec.tags["project"] == "test"
 
-    def test_job_name_validation_valid(self):
+    @pytest.mark.parametrize(
+        "valid_name", ["test-job", "job123", "my-training-job-1", "a", "a-b-c-d-e-f"]
+    )
+    def test_job_name_validation_valid(self, valid_name):
         """Test valid job name validation."""
-        valid_names = ["test-job", "job123", "my-training-job-1"]
+        spec = TrainingJobSpec(
+            job_name=valid_name,
+            resource_requirements=ResourceRequirements(
+                instance_type=InstanceType.CPU_SMALL
+            ),
+            data_configuration=DataConfiguration(
+                input_data_paths=["s3://bucket/data"],
+                output_path="s3://bucket/output",
+            ),
+            environment_configuration=EnvironmentConfiguration(entry_point="train.py"),
+        )
+        assert spec.job_name == valid_name
 
-        for name in valid_names:
-            spec = TrainingJobSpec(
-                job_name=name,
+    @pytest.mark.parametrize(
+        "invalid_name", ["", "job_with_underscore", "job with spaces", "a" * 64]
+    )
+    def test_job_name_validation_invalid(self, invalid_name):
+        """Test invalid job name validation."""
+        with pytest.raises(ValidationError):
+            TrainingJobSpec(
+                job_name=invalid_name,
                 resource_requirements=ResourceRequirements(
                     instance_type=InstanceType.CPU_SMALL
                 ),
@@ -173,27 +192,6 @@ class TestTrainingJobSpec:
                     entry_point="train.py"
                 ),
             )
-            assert spec.job_name == name
-
-    def test_job_name_validation_invalid(self):
-        """Test invalid job name validation."""
-        invalid_names = ["", "job_with_underscore", "job with spaces", "a" * 64]
-
-        for name in invalid_names:
-            with pytest.raises(ValidationError):
-                TrainingJobSpec(
-                    job_name=name,
-                    resource_requirements=ResourceRequirements(
-                        instance_type=InstanceType.CPU_SMALL
-                    ),
-                    data_configuration=DataConfiguration(
-                        input_data_paths=["s3://bucket/data"],
-                        output_path="s3://bucket/output",
-                    ),
-                    environment_configuration=EnvironmentConfiguration(
-                        entry_point="train.py"
-                    ),
-                )
 
     def test_default_values(self):
         """Test default values for training job spec."""
@@ -275,27 +273,27 @@ class TestJobStatusUpdate:
         assert update.metrics["loss"] == 0.25
         assert len(update.logs) == 2
 
-    def test_progress_percentage_validation_valid(self):
+    @pytest.mark.parametrize("valid_progress", [0.0, 25.5, 50.0, 75.5, 100.0])
+    def test_progress_percentage_validation_valid(self, valid_progress):
         """Test valid progress percentage validation."""
-        for progress in [0.0, 50.0, 100.0]:
-            update = JobStatusUpdate(
+        update = JobStatusUpdate(
+            job_id="job-12345",
+            status=JobStatus.RUNNING,
+            progress_percentage=valid_progress,
+            updated_time=datetime.now(UTC),
+        )
+        assert update.progress_percentage == valid_progress
+
+    @pytest.mark.parametrize("invalid_progress", [-1.0, 101.0, 150.0, -10.5])
+    def test_progress_percentage_validation_invalid(self, invalid_progress):
+        """Test invalid progress percentage validation."""
+        with pytest.raises(ValidationError):
+            JobStatusUpdate(
                 job_id="job-12345",
                 status=JobStatus.RUNNING,
-                progress_percentage=progress,
+                progress_percentage=invalid_progress,
                 updated_time=datetime.now(UTC),
             )
-            assert update.progress_percentage == progress
-
-    def test_progress_percentage_validation_invalid(self):
-        """Test invalid progress percentage validation."""
-        for progress in [-1.0, 101.0, 150.0]:
-            with pytest.raises(ValidationError):
-                JobStatusUpdate(
-                    job_id="job-12345",
-                    status=JobStatus.RUNNING,
-                    progress_percentage=progress,
-                    updated_time=datetime.now(UTC),
-                )
 
     def test_epoch_validation_valid(self):
         """Test valid epoch validation."""

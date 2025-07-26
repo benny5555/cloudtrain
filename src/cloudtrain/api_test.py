@@ -121,9 +121,7 @@ class TestCloudTrainingAPI:
 
         assert providers == []
 
-
-class TestCloudTrainingAPISubmitJob:
-    """Test CloudTrainingAPI job submission."""
+    # Job submission tests
 
     @pytest.mark.asyncio
     async def test_submit_job_success(
@@ -228,9 +226,7 @@ class TestCloudTrainingAPISubmitJob:
 
                 assert "Job submission failed" in str(exc_info.value)
 
-
-class TestCloudTrainingAPIJobStatus:
-    """Test CloudTrainingAPI job status operations."""
+    # Job status operations tests
 
     @pytest.mark.asyncio
     async def test_get_job_status_success(self, mock_config_manager):
@@ -372,3 +368,44 @@ class TestCloudTrainingAPIJobStatus:
 
         # Should have called close
         mock_provider.close.assert_called_once()
+
+    # Parameterized tests for provider error scenarios
+
+    @pytest.mark.parametrize(
+        "provider,expected_error_msg",
+        [
+            (CloudProvider.AWS, "Provider aws is not available"),
+            (CloudProvider.AZURE, "Provider azure is not available"),
+            (CloudProvider.GCP, "Provider gcp is not available"),
+            (CloudProvider.ALIBABA, "Provider alibaba is not available"),
+            (CloudProvider.TENCENT, "Provider tencent is not available"),
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_operations_with_unavailable_provider(
+        self, mock_config_manager, sample_job_spec, provider, expected_error_msg
+    ):
+        """Test various operations with unavailable providers."""
+        api = CloudTrainingAPI(
+            config_manager=mock_config_manager, auto_discover_providers=False
+        )
+
+        # Test submit_job with unavailable provider
+        with pytest.raises(ValueError) as exc_info:
+            await api.submit_job(provider, sample_job_spec)
+        assert expected_error_msg in str(exc_info.value)
+
+        # Test get_job_status with unavailable provider
+        with pytest.raises(ValueError) as exc_info:
+            await api.get_job_status(provider, "test-job-123")
+        assert expected_error_msg in str(exc_info.value)
+
+        # Test cancel_job with unavailable provider
+        with pytest.raises(ValueError) as exc_info:
+            await api.cancel_job(provider, "test-job-123")
+        assert expected_error_msg in str(exc_info.value)
+
+        # Test list_jobs with unavailable provider
+        with pytest.raises(ValueError) as exc_info:
+            await api.list_jobs(provider)
+        assert expected_error_msg in str(exc_info.value)

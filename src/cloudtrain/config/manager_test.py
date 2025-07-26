@@ -3,20 +3,41 @@
 import json
 import tempfile
 from pathlib import Path
-from unittest.mock import Mock, patch, mock_open
+from unittest.mock import Mock, mock_open, patch
+
 import pytest
 import yaml
 from pydantic import ValidationError
 
 from cloudtrain.config.manager import ConfigManager, ConfigurationError
 from cloudtrain.config.settings import (
-    CloudTrainSettings,
-    MockConfig,
     AWSConfig,
     AzureConfig,
+    CloudTrainSettings,
     GCPConfig,
+    MockConfig,
 )
 from cloudtrain.enums import CloudProvider, LogLevel
+
+
+class TestConfigurationError:
+    """Test ConfigurationError exception class."""
+
+    def test_configuration_error_creation(self):
+        """Test creating ConfigurationError with message."""
+        error = ConfigurationError("Test error message")
+        assert str(error) == "Test error message"
+        assert isinstance(error, Exception)
+
+    def test_configuration_error_inheritance(self):
+        """Test ConfigurationError inherits from Exception."""
+        error = ConfigurationError("Test")
+        assert isinstance(error, Exception)
+
+    def test_configuration_error_without_message(self):
+        """Test creating ConfigurationError without message."""
+        error = ConfigurationError()
+        assert isinstance(error, Exception)
 
 
 class TestConfigManager:

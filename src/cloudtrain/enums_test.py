@@ -8,20 +8,21 @@ from cloudtrain.enums import CloudProvider, InstanceType, JobStatus, LogLevel
 class TestCloudProvider:
     """Test CloudProvider enum."""
 
-    def test_provider_values(self):
-        """Test that provider values are correct."""
-        assert CloudProvider.AWS.value == "aws"
-        assert CloudProvider.AZURE.value == "azure"
-        assert CloudProvider.GCP.value == "gcp"
-        assert CloudProvider.ALIBABA.value == "alibaba"
-        assert CloudProvider.TENCENT.value == "tencent"
-        assert CloudProvider.MOCK.value == "mock"
-
-    def test_provider_string_representation(self):
-        """Test string representation of providers."""
-        assert str(CloudProvider.AWS) == "aws"
-        assert str(CloudProvider.AZURE) == "azure"
-        assert str(CloudProvider.MOCK) == "mock"
+    @pytest.mark.parametrize(
+        "provider,expected_value",
+        [
+            (CloudProvider.AWS, "aws"),
+            (CloudProvider.AZURE, "azure"),
+            (CloudProvider.GCP, "gcp"),
+            (CloudProvider.ALIBABA, "alibaba"),
+            (CloudProvider.TENCENT, "tencent"),
+            (CloudProvider.MOCK, "mock"),
+        ],
+    )
+    def test_provider_values_and_string_representation(self, provider, expected_value):
+        """Test that provider values and string representations are correct."""
+        assert provider.value == expected_value
+        assert str(provider) == expected_value
 
     def test_get_native_api_providers(self):
         """Test getting native API providers."""
@@ -49,16 +50,22 @@ class TestCloudProvider:
 class TestJobStatus:
     """Test JobStatus enum."""
 
-    def test_status_values(self):
+    @pytest.mark.parametrize(
+        "status,expected_value",
+        [
+            (JobStatus.PENDING, "pending"),
+            (JobStatus.STARTING, "starting"),
+            (JobStatus.RUNNING, "running"),
+            (JobStatus.COMPLETED, "completed"),
+            (JobStatus.FAILED, "failed"),
+            (JobStatus.STOPPED, "stopped"),
+            (JobStatus.STOPPING, "stopping"),
+            (JobStatus.UNKNOWN, "unknown"),
+        ],
+    )
+    def test_status_values(self, status, expected_value):
         """Test that status values are correct."""
-        assert JobStatus.PENDING.value == "pending"
-        assert JobStatus.STARTING.value == "starting"
-        assert JobStatus.RUNNING.value == "running"
-        assert JobStatus.COMPLETED.value == "completed"
-        assert JobStatus.FAILED.value == "failed"
-        assert JobStatus.STOPPED.value == "stopped"
-        assert JobStatus.STOPPING.value == "stopping"
-        assert JobStatus.UNKNOWN.value == "unknown"
+        assert status.value == expected_value
 
     def test_get_terminal_statuses(self):
         """Test getting terminal statuses."""
@@ -79,90 +86,82 @@ class TestJobStatus:
         }
         assert active_statuses == expected
 
-    def test_is_terminal(self):
+    @pytest.mark.parametrize(
+        "status,is_terminal",
+        [
+            (JobStatus.COMPLETED, True),
+            (JobStatus.FAILED, True),
+            (JobStatus.STOPPED, True),
+            (JobStatus.PENDING, False),
+            (JobStatus.RUNNING, False),
+            (JobStatus.STARTING, False),
+            (JobStatus.STOPPING, False),
+            (JobStatus.UNKNOWN, False),
+        ],
+    )
+    def test_is_terminal(self, status, is_terminal):
         """Test terminal status identification."""
-        # Terminal statuses
-        assert JobStatus.COMPLETED.is_terminal()
-        assert JobStatus.FAILED.is_terminal()
-        assert JobStatus.STOPPED.is_terminal()
+        assert status.is_terminal() == is_terminal
 
-        # Non-terminal statuses
-        assert not JobStatus.PENDING.is_terminal()
-        assert not JobStatus.RUNNING.is_terminal()
-        assert not JobStatus.STARTING.is_terminal()
-        assert not JobStatus.STOPPING.is_terminal()
-
-    def test_is_active(self):
+    @pytest.mark.parametrize(
+        "status,is_active",
+        [
+            (JobStatus.PENDING, True),
+            (JobStatus.STARTING, True),
+            (JobStatus.RUNNING, True),
+            (JobStatus.STOPPING, True),
+            (JobStatus.COMPLETED, False),
+            (JobStatus.FAILED, False),
+            (JobStatus.STOPPED, False),
+            (JobStatus.UNKNOWN, False),
+        ],
+    )
+    def test_is_active(self, status, is_active):
         """Test active status identification."""
-        # Active statuses
-        assert JobStatus.PENDING.is_active()
-        assert JobStatus.STARTING.is_active()
-        assert JobStatus.RUNNING.is_active()
-        assert JobStatus.STOPPING.is_active()
-
-        # Inactive statuses
-        assert not JobStatus.COMPLETED.is_active()
-        assert not JobStatus.FAILED.is_active()
-        assert not JobStatus.STOPPED.is_active()
-
-    def test_status_string_representation(self):
-        """Test string representation of statuses."""
-        assert str(JobStatus.RUNNING) == "running"
-        assert str(JobStatus.COMPLETED) == "completed"
-        assert str(JobStatus.FAILED) == "failed"
+        assert status.is_active() == is_active
 
 
 class TestInstanceType:
     """Test InstanceType enum."""
 
-    def test_instance_type_values(self):
-        """Test that instance type values are correct."""
-        assert InstanceType.CPU_SMALL.value == "cpu_small"
-        assert InstanceType.CPU_MEDIUM.value == "cpu_medium"
-        assert InstanceType.CPU_LARGE.value == "cpu_large"
-        assert InstanceType.GPU_SMALL.value == "gpu_small"
-        assert InstanceType.GPU_MEDIUM.value == "gpu_medium"
-        assert InstanceType.GPU_LARGE.value == "gpu_large"
-        assert InstanceType.CUSTOM.value == "custom"
-
-    def test_has_gpu(self):
-        """Test GPU detection for instance types."""
-        # GPU instance types
-        assert InstanceType.GPU_SMALL.has_gpu()
-        assert InstanceType.GPU_MEDIUM.has_gpu()
-        assert InstanceType.GPU_LARGE.has_gpu()
-
-        # CPU instance types
-        assert not InstanceType.CPU_SMALL.has_gpu()
-        assert not InstanceType.CPU_MEDIUM.has_gpu()
-        assert not InstanceType.CPU_LARGE.has_gpu()
-
-        # Custom instance type
-        assert not InstanceType.CUSTOM.has_gpu()
-
-    def test_instance_type_string_representation(self):
-        """Test string representation of instance types."""
-        assert str(InstanceType.CPU_SMALL) == "cpu_small"
-        assert str(InstanceType.GPU_LARGE) == "gpu_large"
-        assert str(InstanceType.CUSTOM) == "custom"
+    @pytest.mark.parametrize(
+        "instance_type,expected_value,has_gpu",
+        [
+            (InstanceType.CPU_SMALL, "cpu_small", False),
+            (InstanceType.CPU_MEDIUM, "cpu_medium", False),
+            (InstanceType.CPU_LARGE, "cpu_large", False),
+            (InstanceType.GPU_SMALL, "gpu_small", True),
+            (InstanceType.GPU_MEDIUM, "gpu_medium", True),
+            (InstanceType.GPU_LARGE, "gpu_large", True),
+            (InstanceType.CUSTOM, "custom", False),
+        ],
+    )
+    def test_instance_type_properties(self, instance_type, expected_value, has_gpu):
+        """Test instance type values, string representation, and GPU detection."""
+        assert instance_type.value == expected_value
+        assert str(instance_type) == expected_value
+        assert instance_type.has_gpu() == has_gpu
 
 
 class TestLogLevel:
     """Test LogLevel enum."""
 
-    def test_log_level_values(self):
-        """Test that log level values are correct."""
-        assert LogLevel.DEBUG.value == "debug"
-        assert LogLevel.INFO.value == "info"
-        assert LogLevel.WARNING.value == "warning"
-        assert LogLevel.ERROR.value == "error"
-        assert LogLevel.CRITICAL.value == "critical"
-
-    def test_log_level_string_representation(self):
-        """Test string representation of log levels."""
-        assert str(LogLevel.DEBUG) == "debug"
-        assert str(LogLevel.INFO) == "info"
-        assert str(LogLevel.ERROR) == "error"
+    @pytest.mark.parametrize(
+        "log_level,expected_value",
+        [
+            (LogLevel.DEBUG, "debug"),
+            (LogLevel.INFO, "info"),
+            (LogLevel.WARNING, "warning"),
+            (LogLevel.ERROR, "error"),
+            (LogLevel.CRITICAL, "critical"),
+        ],
+    )
+    def test_log_level_values_and_string_representation(
+        self, log_level, expected_value
+    ):
+        """Test log level values and string representations are correct."""
+        assert log_level.value == expected_value
+        assert str(log_level) == expected_value
 
 
 @pytest.mark.unit

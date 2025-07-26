@@ -104,14 +104,20 @@ class TestMockProvider:
         # Should take at least 0.1 seconds due to simulated delay
         assert (end_time - start_time).total_seconds() >= 0.1
 
-    def test_map_instance_type_standard(self, provider):
+    @pytest.mark.parametrize(
+        "instance_type,expected",
+        [
+            (InstanceType.CPU_SMALL, "mock.cpu.small"),
+            (InstanceType.CPU_MEDIUM, "mock.cpu.medium"),
+            (InstanceType.CPU_LARGE, "mock.cpu.large"),
+            (InstanceType.GPU_SMALL, "mock.gpu.small"),
+            (InstanceType.GPU_MEDIUM, "mock.gpu.medium"),
+            (InstanceType.GPU_LARGE, "mock.gpu.large"),
+        ],
+    )
+    def test_map_instance_type_standard(self, provider, instance_type, expected):
         """Test mapping standard instance types."""
-        assert provider._map_instance_type(InstanceType.CPU_SMALL) == "mock.cpu.small"
-        assert provider._map_instance_type(InstanceType.CPU_MEDIUM) == "mock.cpu.medium"
-        assert provider._map_instance_type(InstanceType.CPU_LARGE) == "mock.cpu.large"
-        assert provider._map_instance_type(InstanceType.GPU_SMALL) == "mock.gpu.small"
-        assert provider._map_instance_type(InstanceType.GPU_MEDIUM) == "mock.gpu.medium"
-        assert provider._map_instance_type(InstanceType.GPU_LARGE) == "mock.gpu.large"
+        assert provider._map_instance_type(instance_type) == expected
 
     def test_map_instance_type_custom(self, provider):
         """Test mapping custom instance type."""
@@ -124,16 +130,22 @@ class TestMockProvider:
         with pytest.raises(ValueError, match="Unsupported instance type"):
             provider._map_instance_type(None)
 
-    def test_map_job_status(self, provider):
+    @pytest.mark.parametrize(
+        "provider_status,expected",
+        [
+            ("QUEUED", JobStatus.PENDING),
+            ("INITIALIZING", JobStatus.STARTING),
+            ("TRAINING", JobStatus.RUNNING),
+            ("COMPLETED", JobStatus.COMPLETED),
+            ("FAILED", JobStatus.FAILED),
+            ("CANCELLED", JobStatus.STOPPED),
+            ("STOPPING", JobStatus.STOPPING),
+            ("UNKNOWN_STATUS", JobStatus.UNKNOWN),
+        ],
+    )
+    def test_map_job_status(self, provider, provider_status, expected):
         """Test mapping provider-specific job statuses."""
-        assert provider._map_job_status("QUEUED") == JobStatus.PENDING
-        assert provider._map_job_status("INITIALIZING") == JobStatus.STARTING
-        assert provider._map_job_status("TRAINING") == JobStatus.RUNNING
-        assert provider._map_job_status("COMPLETED") == JobStatus.COMPLETED
-        assert provider._map_job_status("FAILED") == JobStatus.FAILED
-        assert provider._map_job_status("CANCELLED") == JobStatus.STOPPED
-        assert provider._map_job_status("STOPPING") == JobStatus.STOPPING
-        assert provider._map_job_status("UNKNOWN_STATUS") == JobStatus.UNKNOWN
+        assert provider._map_job_status(provider_status) == expected
 
     def test_simulate_job_progression(self, provider):
         """Test job progression simulation setup."""

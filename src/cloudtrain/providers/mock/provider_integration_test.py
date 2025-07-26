@@ -206,14 +206,24 @@ class TestMockProviderIntegration:
             dry_run_jobs = [job for job in all_jobs if job.job_id == "dry-run-job-id"]
             assert len(dry_run_jobs) == 0
 
+    @pytest.mark.parametrize(
+        "custom_instance_type,expected_mapping",
+        [
+            ("mock.custom.xlarge", "mock.custom.xlarge"),
+            ("custom.huge", "custom.huge"),
+            ("ml.p4d.24xlarge", "ml.p4d.24xlarge"),
+        ],
+    )
     @pytest.mark.asyncio
-    async def test_custom_instance_type(self, mock_config_manager):
+    async def test_custom_instance_type(
+        self, mock_config_manager, custom_instance_type, expected_mapping
+    ):
         """Test custom instance type handling."""
         spec = TrainingJobSpec(
             job_name="custom-instance-test",
             resource_requirements=ResourceRequirements(
                 instance_type=InstanceType.CUSTOM,
-                custom_instance_type="mock.custom.xlarge",
+                custom_instance_type=custom_instance_type,
             ),
             data_configuration=DataConfiguration(
                 input_data_paths=["file:///tmp/data"], output_path="file:///tmp/output"
@@ -228,7 +238,7 @@ class TestMockProviderIntegration:
 
             # Verify submission succeeded
             assert result.job_id.startswith("mock-job-")
-            assert result.metadata["instance_type"] == "mock.custom.xlarge"
+            assert result.metadata["instance_type"] == expected_mapping
 
     @pytest.mark.asyncio
     async def test_error_handling(self, mock_config_manager):

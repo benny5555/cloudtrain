@@ -146,12 +146,8 @@ class TestRetryWithBackoff:
         delay2 = call_times[2] - call_times[1]
         assert 0.18 <= delay2 <= 0.25
 
-
-class TestRetryDecorator:
-    """Test retry decorator."""
-
     @pytest.mark.asyncio
-    async def test_async_function_decorator(self):
+    async def test_retry_decorator_async_function(self):
         """Test retry decorator with async function."""
         call_count = 0
 
@@ -167,7 +163,7 @@ class TestRetryDecorator:
         assert result == "decorated_success"
         assert call_count == 2
 
-    def test_sync_function_decorator(self):
+    def test_retry_decorator_sync_function(self):
         """Test retry decorator with sync function."""
         call_count = 0
 
@@ -300,10 +296,6 @@ class TestCircuitBreaker:
         assert breaker.state == "CLOSED"
         assert breaker.failure_count == 0
 
-
-class TestCircuitBreakerDecorator:
-    """Test circuit breaker decorator."""
-
     @pytest.mark.asyncio
     async def test_circuit_breaker_decorator(self):
         """Test circuit breaker decorator functionality."""
@@ -332,12 +324,8 @@ class TestCircuitBreakerDecorator:
 
         assert call_count == 3  # Only the first 3 calls executed
 
-
-class TestRetryIntegration:
-    """Test integration between retry and circuit breaker."""
-
     @pytest.mark.asyncio
-    async def test_retry_with_circuit_breaker(self):
+    async def test_retry_with_circuit_breaker_integration(self):
         """Test retry mechanism with circuit breaker protection."""
         call_count = 0
         breaker = CircuitBreaker(failure_threshold=3)
