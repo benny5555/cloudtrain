@@ -18,7 +18,7 @@ from cloudtrain.schemas import (
     TrainingJobSpec,
 )
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 class ProviderError(Exception):
@@ -69,13 +69,13 @@ class BaseCloudProvider(ABC):
         Args:
             config_manager: Configuration manager instance
         """
-        self.config_manager = config_manager
-        self.provider_type = self._get_provider_type()
-        self.is_authenticated = False
-        self._client = None
+        self.config_manager: Any = config_manager
+        self.provider_type: CloudProvider = self._get_provider_type()
+        self.is_authenticated: bool = False
+        self._client: Optional[Any] = None
 
         # Initialize provider-specific configuration
-        self._config = self._load_configuration()
+        self._config: Dict[str, Any] = self._load_configuration()
 
         logger.debug(f"Initialized {self.provider_type.value} provider")
 
@@ -261,7 +261,7 @@ class BaseCloudProvider(ABC):
         self.validate_job_spec(job_spec)
 
         try:
-            result = await self._submit_job_impl(job_spec)
+            result: TrainingJobResult = await self._submit_job_impl(job_spec)
             logger.info(
                 f"Successfully submitted job {job_spec.job_name} "
                 f"to {self.provider_type.value} with ID {result.job_id}"
@@ -293,7 +293,7 @@ class BaseCloudProvider(ABC):
         await self.ensure_authenticated()
 
         try:
-            status = await self._get_job_status_impl(job_id)
+            status: JobStatusUpdate = await self._get_job_status_impl(job_id)
             logger.debug(f"Retrieved status for job {job_id}: {status.status.value}")
             return status
 
@@ -319,7 +319,7 @@ class BaseCloudProvider(ABC):
         await self.ensure_authenticated()
 
         try:
-            success = await self._cancel_job_impl(job_id)
+            success: bool = await self._cancel_job_impl(job_id)
             if success:
                 logger.info(f"Successfully cancelled job {job_id}")
             else:
@@ -351,7 +351,9 @@ class BaseCloudProvider(ABC):
         await self.ensure_authenticated()
 
         try:
-            jobs = await self._list_jobs_impl(status_filter, limit)
+            jobs: List[JobStatusUpdate] = await self._list_jobs_impl(
+                status_filter, limit
+            )
             logger.debug(f"Retrieved {len(jobs)} jobs from {self.provider_type.value}")
             return jobs
 

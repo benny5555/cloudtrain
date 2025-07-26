@@ -3,6 +3,7 @@
 import json
 import tempfile
 from pathlib import Path
+from typing import Any, Dict, Generator
 from unittest.mock import Mock, mock_open, patch
 
 import pytest
@@ -23,64 +24,64 @@ from cloudtrain.enums import CloudProvider, LogLevel
 class TestConfigurationError:
     """Test ConfigurationError exception class."""
 
-    def test_configuration_error_creation(self):
+    def test_configuration_error_creation(self) -> None:
         """Test creating ConfigurationError with message."""
-        error = ConfigurationError("Test error message")
+        error: ConfigurationError = ConfigurationError("Test error message")
         assert str(error) == "Test error message"
         assert isinstance(error, Exception)
 
-    def test_configuration_error_inheritance(self):
+    def test_configuration_error_inheritance(self) -> None:
         """Test ConfigurationError inherits from Exception."""
-        error = ConfigurationError("Test")
+        error: ConfigurationError = ConfigurationError("Test")
         assert isinstance(error, Exception)
 
-    def test_configuration_error_without_message(self):
+    def test_configuration_error_without_message(self) -> None:
         """Test creating ConfigurationError without message."""
-        error = ConfigurationError()
+        error: ConfigurationError = ConfigurationError()
         assert isinstance(error, Exception)
 
 
 class TestConfigManager:
     """Test ConfigManager class."""
 
-    def test_init_with_settings(self):
+    def test_init_with_settings(self) -> None:
         """Test initialization with pre-configured settings."""
-        settings = CloudTrainSettings(log_level=LogLevel.DEBUG)
+        settings: CloudTrainSettings = CloudTrainSettings(log_level=LogLevel.DEBUG)
 
         with patch.object(ConfigManager, "_configure_logging") as mock_logging:
-            manager = ConfigManager(settings=settings)
+            manager: ConfigManager = ConfigManager(settings=settings)
 
         assert manager.settings == settings
         assert "programmatic" in manager.config_sources
         mock_logging.assert_called_once()
 
-    def test_init_without_settings(self):
+    def test_init_without_settings(self) -> None:
         """Test initialization without settings loads from environment."""
         with (
             patch.object(ConfigManager, "_load_settings") as mock_load,
             patch.object(ConfigManager, "_configure_logging") as mock_logging,
         ):
-            mock_settings = CloudTrainSettings()
+            mock_settings: CloudTrainSettings = CloudTrainSettings()
             mock_load.return_value = mock_settings
 
-            manager = ConfigManager()
+            manager: ConfigManager = ConfigManager()
 
             assert manager.settings == mock_settings
             mock_load.assert_called_once_with(None)
             mock_logging.assert_called_once()
 
-    def test_init_with_config_file(self):
+    def test_init_with_config_file(self) -> None:
         """Test initialization with config file path."""
-        config_file = "/path/to/config.yaml"
+        config_file: str = "/path/to/config.yaml"
 
         with (
             patch.object(ConfigManager, "_load_settings") as mock_load,
             patch.object(ConfigManager, "_configure_logging") as mock_logging,
         ):
-            mock_settings = CloudTrainSettings()
+            mock_settings: CloudTrainSettings = CloudTrainSettings()
             mock_load.return_value = mock_settings
 
-            manager = ConfigManager(config_file=config_file)
+            manager: ConfigManager = ConfigManager(config_file=config_file)
 
             mock_load.assert_called_once_with(config_file)
             mock_logging.assert_called_once()

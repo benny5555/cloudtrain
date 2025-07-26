@@ -16,7 +16,9 @@ logger = logging.getLogger(__name__)
 class RetryError(Exception):
     """Exception raised when retry attempts are exhausted."""
 
-    def __init__(self, message: str, last_exception: Optional[Exception] = None):
+    def __init__(
+        self, message: str, last_exception: Optional[Exception] = None
+    ) -> None:
         super().__init__(message)
         self.last_exception = last_exception
 
@@ -139,7 +141,7 @@ def retry(
         if asyncio.iscoroutinefunction(func):
 
             @wraps(func)
-            async def async_wrapper(*args, **kwargs):
+            async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
                 return await retry_with_backoff(
                     func,
                     *args,
@@ -156,7 +158,7 @@ def retry(
         else:
 
             @wraps(func)
-            def sync_wrapper(*args, **kwargs):
+            def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
                 # For sync functions, we need to run in an event loop
                 return asyncio.run(
                     retry_with_backoff(
@@ -303,7 +305,7 @@ def circuit_breaker(
 
     def decorator(func: Callable) -> Callable:
         @wraps(func)
-        async def wrapper(*args, **kwargs):
+        async def wrapper(*args: Any, **kwargs: Any) -> Any:
             return await breaker.call(func, *args, **kwargs)
 
         return wrapper

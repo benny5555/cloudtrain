@@ -1,5 +1,7 @@
 """Unit tests for CloudTrain enums."""
 
+from typing import Set
+
 import pytest
 
 from cloudtrain.enums import CloudProvider, InstanceType, JobStatus, LogLevel
@@ -19,16 +21,18 @@ class TestCloudProvider:
             (CloudProvider.MOCK, "mock"),
         ],
     )
-    def test_provider_values_and_string_representation(self, provider, expected_value):
+    def test_provider_values_and_string_representation(
+        self, provider: CloudProvider, expected_value: str
+    ) -> None:
         """Test that provider values and string representations are correct."""
         assert provider.value == expected_value
         assert str(provider) == expected_value
 
-    def test_get_native_api_providers(self):
+    def test_get_native_api_providers(self) -> None:
         """Test getting native API providers."""
-        native_providers = CloudProvider.get_native_api_providers()
+        native_providers: Set[CloudProvider] = CloudProvider.get_native_api_providers()
 
-        expected = {
+        expected: Set[CloudProvider] = {
             CloudProvider.AWS,
             CloudProvider.AZURE,
             CloudProvider.GCP,
@@ -39,9 +43,9 @@ class TestCloudProvider:
         assert native_providers == expected
         assert CloudProvider.MOCK not in native_providers
 
-    def test_get_wrapper_providers(self):
+    def test_get_wrapper_providers(self) -> None:
         """Test getting wrapper providers."""
-        wrapper_providers = CloudProvider.get_wrapper_providers()
+        wrapper_providers: Set[CloudProvider] = CloudProvider.get_wrapper_providers()
 
         assert CloudProvider.MOCK in wrapper_providers
         assert CloudProvider.AWS not in wrapper_providers

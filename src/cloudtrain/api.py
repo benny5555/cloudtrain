@@ -7,7 +7,8 @@ machine learning training jobs across multiple cloud providers.
 import asyncio
 import logging
 from datetime import UTC, datetime
-from typing import Dict, List, Optional, Type
+from typing import Any, Dict, List, Optional, Type, Union
+import importlib
 
 from cloudtrain.config import ConfigManager
 from cloudtrain.enums import CloudProvider, JobStatus
@@ -16,7 +17,7 @@ from cloudtrain.schemas import JobStatusUpdate, TrainingJobResult, TrainingJobSp
 from cloudtrain.utils.retry import retry_with_backoff
 from cloudtrain.utils.validation import validate_job_spec
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 class CloudTrainingAPI:
@@ -75,7 +76,7 @@ class CloudTrainingAPI:
         based on available dependencies and configuration.
         """
         # Import providers dynamically to avoid hard dependencies
-        provider_modules = {
+        provider_modules: Dict[CloudProvider, str] = {
             CloudProvider.AWS: "cloudtrain.providers.aws.sagemaker",
             CloudProvider.AZURE: "cloudtrain.providers.azure.ml",
             CloudProvider.GCP: "cloudtrain.providers.gcp.aiplatform",
@@ -87,10 +88,10 @@ class CloudTrainingAPI:
         for provider, module_name in provider_modules.items():
             try:
                 # Dynamic import to handle optional dependencies
-                import importlib
-
-                module = importlib.import_module(module_name)
-                provider_class = getattr(module, f"{provider.value.title()}Provider")
+                module: Any = importlib.import_module(module_name)
+                provider_class: Type[BaseCloudProvider] = getattr(
+                    module, f"{provider.value.title()}Provider"
+                )
 
                 # Check if provider is properly configured
                 if self._is_provider_configured(provider):
@@ -114,7 +115,7 @@ class CloudTrainingAPI:
             True if the provider has valid configuration
         """
         try:
-            config = self.config_manager.get_provider_config(provider)
+            config: Optional[Any] = self.config_manager.get_provider_config(provider)
             return config is not None and config.is_valid()
         except Exception:
             return False
@@ -158,7 +159,7 @@ class CloudTrainingAPI:
         """
         # Validate inputs
         if provider not in self.providers:
-            available = [p.value for p in self.get_available_providers()]
+            available: List[str] = [p.value for p in self.get_available_providers()]
             raise ValueError(
                 f"Provider {provider.value} is not available. "
                 f"Available providers: {available}"
@@ -178,11 +179,11 @@ class CloudTrainingAPI:
             )
 
         # Get provider instance
-        provider_instance = self.providers[provider]
+        provider_instance: BaseCloudProvider = self.providers[provider]
 
         # Submit job with retry logic
         try:
-            result = await retry_with_backoff(
+            result: TrainingJobResult = await retry_with_backoff(
                 provider_instance.submit_job, job_spec, max_retries=3, base_delay=1.0
             )
 
@@ -215,16 +216,16 @@ class CloudTrainingAPI:
             RuntimeError: If status retrieval fails
         """
         if provider not in self.providers:
-            available = [p.value for p in self.get_available_providers()]
+            available: List[str] = [p.value for p in self.get_available_providers()]
             raise ValueError(
                 f"Provider {provider.value} is not available. "
                 f"Available providers: {available}"
             )
 
-        provider_instance = self.providers[provider]
+        provider_instance: BaseCloudProvider = self.providers[provider]
 
         try:
-            status = await provider_instance.get_job_status(job_id)
+            status: JobStatusUpdate = await provider_instance.get_job_status(job_id)
             logger.debug(f"Retrieved status for job {job_id}: {status.status.value}")
             return status
 
@@ -247,16 +248,16 @@ class CloudTrainingAPI:
             RuntimeError: If job cancellation fails
         """
         if provider not in self.providers:
-            available = [p.value for p in self.get_available_providers()]
+            available: List[str] = [p.value for p in self.get_available_providers()]
             raise ValueError(
                 f"Provider {provider.value} is not available. "
                 f"Available providers: {available}"
             )
 
-        provider_instance = self.providers[provider]
+        provider_instance: BaseCloudProvider = self.providers[provider]
 
         try:
-            success = await provider_instance.cancel_job(job_id)
+            success: bool = await provider_instance.cancel_job(job_id)
             if success:
                 logger.info(f"Successfully cancelled job {job_id}")
             else:
@@ -287,16 +288,18 @@ class CloudTrainingAPI:
             ValueError: If the provider is not available
         """
         if provider not in self.providers:
-            available = [p.value for p in self.get_available_providers()]
+            available: List[str] = [p.value for p in self.get_available_providers()]
             raise ValueError(
                 f"Provider {provider.value} is not available. "
                 f"Available providers: {available}"
             )
 
-        provider_instance = self.providers[provider]
+        provider_instance: BaseCloudProvider = self.providers[provider]
 
         try:
-            jobs = await provider_instance.list_jobs(status_filter, limit)
+            jobs: List[JobStatusUpdate] = await provider_instance.list_jobs(
+                status_filter, limit
+            )
             logger.debug(f"Retrieved {len(jobs)} jobs from {provider.value}")
             return jobs
 
@@ -320,6 +323,11 @@ class CloudTrainingAPI:
         """Async context manager entry."""
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+    async def __aexit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[Any],
+    ) -> None:
         """Async context manager exit."""
         await self.close()

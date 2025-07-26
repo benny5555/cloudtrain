@@ -10,7 +10,7 @@ import asyncio
 import json
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 import click
 from rich.console import Console
@@ -20,9 +20,9 @@ from rich.table import Table
 
 from cloudtrain import CloudProvider, CloudTrainingAPI, JobStatus
 from cloudtrain.config import ConfigManager
-from cloudtrain.schemas import TrainingJobSpec
+from cloudtrain.schemas import TrainingJobSpec, JobStatusUpdate
 
-console = Console()
+console: Console = Console()
 
 
 @click.group()
@@ -31,7 +31,7 @@ console = Console()
 )
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose logging")
 @click.pass_context
-def cli(ctx, config: Optional[str], verbose: bool):
+def cli(ctx: click.Context, config: Optional[str], verbose: bool) -> None:
     """CloudTrain - Universal Cloud Training API CLI.
 
     Submit and manage machine learning training jobs across multiple cloud providers.
@@ -39,7 +39,9 @@ def cli(ctx, config: Optional[str], verbose: bool):
     ctx.ensure_object(dict)
 
     # Set up configuration
-    config_manager = ConfigManager(config_file=config) if config else ConfigManager()
+    config_manager: ConfigManager = (
+        ConfigManager(config_file=config) if config else ConfigManager()
+    )
     ctx.obj["config_manager"] = config_manager
     ctx.obj["verbose"] = verbose
 
@@ -49,28 +51,28 @@ def cli(ctx, config: Optional[str], verbose: bool):
 
 @cli.command()
 @click.pass_context
-def providers(ctx):
+def providers(ctx: click.Context) -> None:
     """List available cloud providers."""
 
-    async def list_providers():
-        config_manager = ctx.obj["config_manager"]
+    async def list_providers() -> None:
+        config_manager: ConfigManager = ctx.obj["config_manager"]
 
         async with CloudTrainingAPI(config_manager=config_manager) as api:
-            available = api.get_available_providers()
+            available: List[CloudProvider] = api.get_available_providers()
 
             if not available:
                 console.print("[yellow]No providers are currently available.[/yellow]")
                 console.print("Please check your configuration and credentials.")
                 return
 
-            table = Table(title="Available Cloud Providers")
+            table: Table = Table(title="Available Cloud Providers")
             table.add_column("Provider", style="cyan")
             table.add_column("Status", style="green")
             table.add_column("Region", style="dim")
 
             for provider in available:
-                config = config_manager.get_provider_config(provider)
-                region = getattr(config, "region", "N/A") if config else "N/A"
+                config: Any = config_manager.get_provider_config(provider)
+                region: str = getattr(config, "region", "N/A") if config else "N/A"
                 table.add_row(provider.value.upper(), "✅ Available", region)
 
             console.print(table)
@@ -88,32 +90,34 @@ def providers(ctx):
 )
 @click.option("--dry-run", is_flag=True, help="Validate job spec without submitting")
 @click.pass_context
-def submit(ctx, job_spec_file: str, provider: Optional[str], dry_run: bool):
+def submit(
+    ctx: click.Context, job_spec_file: str, provider: Optional[str], dry_run: bool
+) -> None:
     """Submit a training job from a specification file."""
 
-    async def submit_job():
-        config_manager = ctx.obj["config_manager"]
+    async def submit_job() -> None:
+        config_manager: ConfigManager = ctx.obj["config_manager"]
 
         # Load job specification
-        job_spec_path = Path(job_spec_file)
+        job_spec_path: Path = Path(job_spec_file)
 
         try:
             with open(job_spec_path, "r") as f:
                 if job_spec_path.suffix.lower() == ".json":
-                    job_data = json.load(f)
+                    job_data: Dict[str, Any] = json.load(f)
                 else:
                     import yaml
 
                     job_data = yaml.safe_load(f)
 
-            job_spec = TrainingJobSpec(**job_data)
+            job_spec: TrainingJobSpec = TrainingJobSpec(**job_data)
 
         except Exception as e:
             console.print(f"[red]Error loading job specification: {e}[/red]")
             sys.exit(1)
 
         async with CloudTrainingAPI(config_manager=config_manager) as api:
-            available_providers = api.get_available_providers()
+            available_providers: List[CloudProvider] = api.get_available_providers()
 
             if not available_providers:
                 console.print(
@@ -123,7 +127,7 @@ def submit(ctx, job_spec_file: str, provider: Optional[str], dry_run: bool):
 
             # Select provider
             if provider:
-                selected_provider = CloudProvider(provider)
+                selected_provider: CloudProvider = CloudProvider(provider)
                 if selected_provider not in available_providers:
                     console.print(f"[red]Provider {provider} is not available.[/red]")
                     console.print(
@@ -191,12 +195,12 @@ def submit(ctx, job_spec_file: str, provider: Optional[str], dry_run: bool):
     "--follow", "-f", is_flag=True, help="Follow job progress until completion"
 )
 @click.pass_context
-def status(ctx, job_id: str, provider: str, follow: bool):
+def status(ctx: click.Context, job_id: str, provider: str, follow: bool) -> None:
     """Get the status of a training job."""
 
-    async def get_status():
-        config_manager = ctx.obj["config_manager"]
-        selected_provider = CloudProvider(provider)
+    async def get_status() -> None:
+        config_manager: ConfigManager = ctx.obj["config_manager"]
+        selected_provider: CloudProvider = CloudProvider(provider)
 
         async with CloudTrainingAPI(config_manager=config_manager) as api:
             try:
@@ -315,12 +319,12 @@ def list_jobs(ctx, provider: Optional[str], status_filter: Optional[str], limit:
 )
 @click.confirmation_option(prompt="Are you sure you want to cancel this job?")
 @click.pass_context
-def cancel(ctx, job_id: str, provider: str):
+def cancel(ctx: click.Context, job_id: str, provider: str) -> None:
     """Cancel a training job."""
 
-    async def cancel_job():
-        config_manager = ctx.obj["config_manager"]
-        selected_provider = CloudProvider(provider)
+    async def cancel_job() -> None:
+        config_manager: ConfigManager = ctx.obj["config_manager"]
+        selected_provider: CloudProvider = CloudProvider(provider)
 
         async with CloudTrainingAPI(config_manager=config_manager) as api:
             try:
@@ -352,13 +356,13 @@ def cancel(ctx, job_id: str, provider: str):
 
 @cli.command()
 @click.pass_context
-def config(ctx):
+def config(ctx: click.Context) -> None:
     """Show current configuration."""
 
-    config_manager = ctx.obj["config_manager"]
+    config_manager: ConfigManager = ctx.obj["config_manager"]
 
     # Validate configuration
-    validation = config_manager.validate_configuration()
+    validation: Dict[str, Any] = config_manager.validate_configuration()
 
     console.print(
         Panel.fit(
@@ -370,16 +374,16 @@ def config(ctx):
     )
 
     # Show provider status
-    table = Table(title="Provider Configuration")
+    table: Table = Table(title="Provider Configuration")
     table.add_column("Provider", style="cyan")
     table.add_column("Enabled", style="green")
     table.add_column("Valid", style="yellow")
     table.add_column("Errors", style="red")
 
     for provider_name, provider_info in validation["providers"].items():
-        enabled = "✅" if provider_info["enabled"] else "❌"
-        valid = "✅" if provider_info["valid"] else "❌"
-        errors = (
+        enabled: str = "✅" if provider_info["enabled"] else "❌"
+        valid: str = "✅" if provider_info["valid"] else "❌"
+        errors: str = (
             ", ".join(provider_info["errors"]) if provider_info["errors"] else "None"
         )
 
@@ -393,10 +397,10 @@ def config(ctx):
             console.print(f"  • {error}")
 
 
-def display_job_status(job_status):
+def display_job_status(job_status: JobStatusUpdate) -> None:
     """Display job status in a formatted way."""
 
-    status_color = {
+    status_color: Dict[JobStatus, str] = {
         JobStatus.PENDING: "yellow",
         JobStatus.STARTING: "blue",
         JobStatus.RUNNING: "green",
@@ -407,9 +411,9 @@ def display_job_status(job_status):
         JobStatus.UNKNOWN: "dim",
     }
 
-    color = status_color.get(job_status.status, "white")
+    color: str = status_color.get(job_status.status, "white")
 
-    info = f"[{color}]Status:[/{color}] {job_status.status.value}\n"
+    info: str = f"[{color}]Status:[/{color}] {job_status.status.value}\n"
     info += f"[cyan]Job ID:[/cyan] {job_status.job_id}\n"
     info += f"[cyan]Updated:[/cyan] {job_status.updated_time}\n"
 
@@ -420,7 +424,7 @@ def display_job_status(job_status):
         info += f"[cyan]Epoch:[/cyan] {job_status.current_epoch}/{job_status.total_epochs}\n"
 
     if job_status.metrics:
-        metrics_str = ", ".join(
+        metrics_str: str = ", ".join(
             [f"{k}: {v:.4f}" for k, v in job_status.metrics.items()]
         )
         info += f"[cyan]Metrics:[/cyan] {metrics_str}\n"
@@ -428,7 +432,7 @@ def display_job_status(job_status):
     if job_status.error_message:
         info += f"[red]Error:[/red] {job_status.error_message}\n"
 
-    panel = Panel.fit(info.strip(), title="Job Status", border_style=color)
+    panel: Panel = Panel.fit(info.strip(), title="Job Status", border_style=color)
     console.print(panel)
 
     if job_status.logs:
@@ -438,7 +442,7 @@ def display_job_status(job_status):
                 console.print(f"  {log_line}")
 
 
-def main():
+def main() -> None:
     """Main CLI entry point."""
     cli()
 

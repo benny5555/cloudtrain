@@ -15,7 +15,7 @@ from cloudtrain.enums import CloudProvider, InstanceType, JobStatus
 from cloudtrain.providers.base import BaseCloudProvider
 from cloudtrain.schemas import JobStatusUpdate, TrainingJobResult, TrainingJobSpec
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 class MockProvider(BaseCloudProvider):
@@ -57,9 +57,9 @@ class MockProvider(BaseCloudProvider):
             Mock configuration dictionary
         """
         # Get mock provider config from config manager
-        mock_config = self.config_manager.get_provider_config(CloudProvider.MOCK)
+        mock_config: Any = self.config_manager.get_provider_config(CloudProvider.MOCK)
 
-        config = {
+        config: Dict[str, Any] = {
             "region": "mock-region-1",
             "endpoint": "https://mock.cloudtrain.ai",
             "api_version": "v1",
@@ -110,7 +110,7 @@ class MockProvider(BaseCloudProvider):
             return custom_type
 
         # Mock instance type mapping
-        mapping = {
+        mapping: Dict[InstanceType, str] = {
             InstanceType.CPU_SMALL: "mock.cpu.small",
             InstanceType.CPU_MEDIUM: "mock.cpu.medium",
             InstanceType.CPU_LARGE: "mock.cpu.large",
@@ -134,7 +134,7 @@ class MockProvider(BaseCloudProvider):
             Standardized JobStatus enum value
         """
         # Mock status mapping
-        mapping = {
+        mapping: Dict[str, JobStatus] = {
             "QUEUED": JobStatus.PENDING,
             "INITIALIZING": JobStatus.STARTING,
             "TRAINING": JobStatus.RUNNING,
@@ -153,7 +153,7 @@ class MockProvider(BaseCloudProvider):
             job_id: Job identifier to set up progression for
         """
         # Define realistic job progression
-        progression = [
+        progression: List[JobStatus] = [
             JobStatus.PENDING,
             JobStatus.STARTING,
             JobStatus.RUNNING,
@@ -174,14 +174,14 @@ class MockProvider(BaseCloudProvider):
         if job_id not in self.jobs:
             return JobStatus.UNKNOWN
 
-        job_data = self.jobs[job_id]
+        job_data: Dict[str, Any] = self.jobs[job_id]
 
         # Check if job has been manually set to a terminal status
         if "status" in job_data and job_data["status"].is_terminal():
             return job_data["status"]
 
-        submission_time = job_data["submission_time"]
-        elapsed = datetime.now(UTC) - submission_time
+        submission_time: datetime = job_data["submission_time"]
+        elapsed: timedelta = datetime.now(UTC) - submission_time
 
         # Simulate job progression based on elapsed time
         if elapsed < timedelta(seconds=1):
@@ -195,7 +195,7 @@ class MockProvider(BaseCloudProvider):
             if self._config.get("simulate_failures", False):
                 import random
 
-                failure_rate = self._config.get("failure_rate", 0.1)
+                failure_rate: float = self._config.get("failure_rate", 0.1)
                 if random.random() < failure_rate:
                     return JobStatus.FAILED
                 else:

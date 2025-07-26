@@ -1,6 +1,7 @@
 """Unit tests for CloudTrain schemas."""
 
 from datetime import UTC, datetime
+from typing import Any, Dict
 
 import pytest
 from pydantic import ValidationError
@@ -19,9 +20,9 @@ from cloudtrain.schemas import (
 class TestResourceRequirements:
     """Test ResourceRequirements schema."""
 
-    def test_valid_resource_requirements(self):
+    def test_valid_resource_requirements(self) -> None:
         """Test creating valid resource requirements."""
-        req = ResourceRequirements(
+        req: ResourceRequirements = ResourceRequirements(
             instance_type=InstanceType.GPU_SMALL,
             instance_count=2,
             volume_size_gb=100,
@@ -33,18 +34,20 @@ class TestResourceRequirements:
         assert req.volume_size_gb == 100
         assert req.max_runtime_seconds == 3600
 
-    def test_default_values(self):
+    def test_default_values(self) -> None:
         """Test default values for resource requirements."""
-        req = ResourceRequirements(instance_type=InstanceType.CPU_SMALL)
+        req: ResourceRequirements = ResourceRequirements(
+            instance_type=InstanceType.CPU_SMALL
+        )
 
         assert req.instance_count == 1
         assert req.volume_size_gb == 30
         assert req.custom_instance_type is None
         assert req.max_runtime_seconds is None
 
-    def test_custom_instance_type_validation_valid(self):
+    def test_custom_instance_type_validation_valid(self) -> None:
         """Test valid custom instance type validation."""
-        req = ResourceRequirements(
+        req: ResourceRequirements = ResourceRequirements(
             instance_type=InstanceType.CUSTOM, custom_instance_type="ml.p4d.24xlarge"
         )
         assert req.custom_instance_type == "ml.p4d.24xlarge"

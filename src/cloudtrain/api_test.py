@@ -1,6 +1,7 @@
 """Unit tests for CloudTrain main API."""
 
 from datetime import UTC, datetime
+from typing import Any, Generator
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -19,9 +20,9 @@ from cloudtrain.schemas import (
 
 
 @pytest.fixture
-def mock_config_manager():
+def mock_config_manager() -> Mock:
     """Provide a mock configuration manager."""
-    config_manager = Mock(spec=ConfigManager)
+    config_manager: Mock = Mock(spec=ConfigManager)
     config_manager.get_provider_config.return_value = Mock(
         is_valid=Mock(return_value=True)
     )
@@ -29,7 +30,7 @@ def mock_config_manager():
 
 
 @pytest.fixture
-def sample_job_spec():
+def sample_job_spec() -> TrainingJobSpec:
     """Provide a sample job specification for testing."""
     return TrainingJobSpec(
         job_name="test-job",
@@ -44,7 +45,7 @@ def sample_job_spec():
 
 
 @pytest.fixture
-def sample_job_result():
+def sample_job_result() -> TrainingJobResult:
     """Provide a sample job result for testing."""
     return TrainingJobResult(
         job_id="test-job-123",
@@ -58,62 +59,64 @@ def sample_job_result():
 class TestCloudTrainingAPI:
     """Test CloudTrainingAPI class."""
 
-    def test_init_with_config_manager(self, mock_config_manager):
+    def test_init_with_config_manager(self, mock_config_manager: Mock) -> None:
         """Test API initialization with config manager."""
-        api = CloudTrainingAPI(
+        api: CloudTrainingAPI = CloudTrainingAPI(
             config_manager=mock_config_manager, auto_discover_providers=False
         )
 
         assert api.config_manager == mock_config_manager
         assert api.providers == {}
 
-    def test_init_without_config_manager(self):
+    def test_init_without_config_manager(self) -> None:
         """Test API initialization without config manager."""
         with patch("cloudtrain.api.ConfigManager") as mock_config_class:
-            mock_config_instance = Mock()
+            mock_config_instance: Mock = Mock()
             mock_config_class.return_value = mock_config_instance
 
-            api = CloudTrainingAPI(auto_discover_providers=False)
+            api: CloudTrainingAPI = CloudTrainingAPI(auto_discover_providers=False)
 
             assert api.config_manager == mock_config_instance
             mock_config_class.assert_called_once()
 
     @patch("cloudtrain.api.CloudTrainingAPI._discover_providers")
-    def test_init_with_auto_discover(self, mock_discover, mock_config_manager):
+    def test_init_with_auto_discover(
+        self, mock_discover: Mock, mock_config_manager: Mock
+    ) -> None:
         """Test API initialization with auto-discovery enabled."""
-        api = CloudTrainingAPI(
+        api: CloudTrainingAPI = CloudTrainingAPI(
             config_manager=mock_config_manager, auto_discover_providers=True
         )
 
         mock_discover.assert_called_once()
 
-    def test_register_provider(self, mock_config_manager):
+    def test_register_provider(self, mock_config_manager: Mock) -> None:
         """Test manual provider registration."""
-        api = CloudTrainingAPI(
+        api: CloudTrainingAPI = CloudTrainingAPI(
             config_manager=mock_config_manager, auto_discover_providers=False
         )
-        mock_provider = Mock()
+        mock_provider: Mock = Mock()
 
         api.register_provider(CloudProvider.MOCK, mock_provider)
 
         assert CloudProvider.MOCK in api.providers
         assert api.providers[CloudProvider.MOCK] == mock_provider
 
-    def test_get_available_providers(self, mock_config_manager):
+    def test_get_available_providers(self, mock_config_manager: Mock) -> None:
         """Test getting available providers."""
-        api = CloudTrainingAPI(
+        api: CloudTrainingAPI = CloudTrainingAPI(
             config_manager=mock_config_manager, auto_discover_providers=False
         )
-        mock_provider = Mock()
+        mock_provider: Mock = Mock()
         api.register_provider(CloudProvider.MOCK, mock_provider)
 
         providers = api.get_available_providers()
 
         assert providers == [CloudProvider.MOCK]
 
-    def test_get_available_providers_empty(self, mock_config_manager):
+    def test_get_available_providers_empty(self, mock_config_manager: Mock) -> None:
         """Test getting available providers when none are registered."""
-        api = CloudTrainingAPI(
+        api: CloudTrainingAPI = CloudTrainingAPI(
             config_manager=mock_config_manager, auto_discover_providers=False
         )
 
@@ -125,15 +128,18 @@ class TestCloudTrainingAPI:
 
     @pytest.mark.asyncio
     async def test_submit_job_success(
-        self, mock_config_manager, sample_job_spec, sample_job_result
-    ):
+        self,
+        mock_config_manager: Mock,
+        sample_job_spec: TrainingJobSpec,
+        sample_job_result: TrainingJobResult,
+    ) -> None:
         """Test successful job submission."""
-        api = CloudTrainingAPI(
+        api: CloudTrainingAPI = CloudTrainingAPI(
             config_manager=mock_config_manager, auto_discover_providers=False
         )
 
         # Mock provider
-        mock_provider = AsyncMock()
+        mock_provider: AsyncMock = AsyncMock()
         mock_provider.submit_job.return_value = sample_job_result
         api.register_provider(CloudProvider.MOCK, mock_provider)
 
@@ -142,25 +148,29 @@ class TestCloudTrainingAPI:
             with patch("cloudtrain.api.retry_with_backoff") as mock_retry:
                 mock_retry.return_value = sample_job_result
 
-                result = await api.submit_job(CloudProvider.MOCK, sample_job_spec)
+                result: TrainingJobResult = await api.submit_job(
+                    CloudProvider.MOCK, sample_job_spec
+                )
 
                 assert result == sample_job_result
                 mock_validate.assert_called_once_with(sample_job_spec)
                 mock_retry.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_submit_job_dry_run(self, mock_config_manager, sample_job_spec):
+    async def test_submit_job_dry_run(
+        self, mock_config_manager: Mock, sample_job_spec: TrainingJobSpec
+    ) -> None:
         """Test job submission with dry run."""
-        api = CloudTrainingAPI(
+        api: CloudTrainingAPI = CloudTrainingAPI(
             config_manager=mock_config_manager, auto_discover_providers=False
         )
 
         # Mock provider
-        mock_provider = AsyncMock()
+        mock_provider: AsyncMock = AsyncMock()
         api.register_provider(CloudProvider.MOCK, mock_provider)
 
         with patch("cloudtrain.api.validate_job_spec") as mock_validate:
-            result = await api.submit_job(
+            result: TrainingJobResult = await api.submit_job(
                 CloudProvider.MOCK, sample_job_spec, dry_run=True
             )
 
@@ -173,10 +183,10 @@ class TestCloudTrainingAPI:
 
     @pytest.mark.asyncio
     async def test_submit_job_provider_not_available(
-        self, mock_config_manager, sample_job_spec
-    ):
+        self, mock_config_manager: Mock, sample_job_spec: TrainingJobSpec
+    ) -> None:
         """Test job submission with unavailable provider."""
-        api = CloudTrainingAPI(
+        api: CloudTrainingAPI = CloudTrainingAPI(
             config_manager=mock_config_manager, auto_discover_providers=False
         )
 
@@ -187,10 +197,10 @@ class TestCloudTrainingAPI:
 
     @pytest.mark.asyncio
     async def test_submit_job_validation_error(
-        self, mock_config_manager, sample_job_spec
-    ):
+        self, mock_config_manager: Mock, sample_job_spec: TrainingJobSpec
+    ) -> None:
         """Test job submission with validation error."""
-        api = CloudTrainingAPI(
+        api: CloudTrainingAPI = CloudTrainingAPI(
             config_manager=mock_config_manager, auto_discover_providers=False
         )
 

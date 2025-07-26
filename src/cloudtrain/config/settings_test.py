@@ -3,6 +3,7 @@
 import os
 import tempfile
 from pathlib import Path
+from typing import Any, Dict
 from unittest.mock import patch
 
 import pytest
@@ -22,9 +23,9 @@ from cloudtrain.enums import CloudProvider, LogLevel
 class TestBaseProviderConfig:
     """Test BaseProviderConfig class."""
 
-    def test_default_values(self):
+    def test_default_values(self) -> None:
         """Test default configuration values."""
-        config = BaseProviderConfig()
+        config: BaseProviderConfig = BaseProviderConfig()
 
         assert config.enabled is True
         assert config.region is None
@@ -32,9 +33,9 @@ class TestBaseProviderConfig:
         assert config.max_retries == 3
         assert config.retry_delay == 1.0
 
-    def test_custom_values(self):
+    def test_custom_values(self) -> None:
         """Test custom configuration values."""
-        config = BaseProviderConfig(
+        config: BaseProviderConfig = BaseProviderConfig(
             enabled=False,
             region="us-west-2",
             timeout=600,

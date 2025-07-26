@@ -9,7 +9,7 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import yaml
 from pydantic import ValidationError
@@ -17,7 +17,7 @@ from pydantic import ValidationError
 from cloudtrain.config.settings import BaseProviderConfig, CloudTrainSettings
 from cloudtrain.enums import CloudProvider
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 class ConfigurationError(Exception):
@@ -79,14 +79,14 @@ class ConfigManager:
         """
         # Start with default settings (will load from environment)
         try:
-            settings = CloudTrainSettings()
+            settings: CloudTrainSettings = CloudTrainSettings()
             self.config_sources.append("environment")
         except ValidationError as e:
             raise ConfigurationError(f"Invalid environment configuration: {e}")
 
         # Override with config file if provided
         if config_file:
-            file_config = self._load_config_file(config_file)
+            file_config: Optional[Dict[str, Any]] = self._load_config_file(config_file)
             if file_config:
                 try:
                     # Merge file config with environment config
@@ -97,7 +97,7 @@ class ConfigManager:
 
         # Look for default config files
         else:
-            default_files = [
+            default_files: List[Path] = [
                 Path.cwd() / "cloudtrain.yaml",
                 Path.cwd() / "cloudtrain.yml",
                 Path.cwd() / "cloudtrain.json",
@@ -135,7 +135,7 @@ class ConfigManager:
         Returns:
             Configuration dictionary or None if loading fails
         """
-        config_path = Path(config_file)
+        config_path: Path = Path(config_file)
 
         if not config_path.exists():
             logger.warning(f"Configuration file not found: {config_path}")
@@ -159,16 +159,16 @@ class ConfigManager:
 
     def _configure_logging(self) -> None:
         """Configure logging based on settings."""
-        log_level = self.settings.log_level.value.upper()
+        log_level: str = self.settings.log_level.value.upper()
 
         # Configure root logger for CloudTrain
-        cloudtrain_logger = logging.getLogger("cloudtrain")
+        cloudtrain_logger: logging.Logger = logging.getLogger("cloudtrain")
         cloudtrain_logger.setLevel(getattr(logging, log_level))
 
         # Add console handler if not already present
         if not cloudtrain_logger.handlers:
-            handler = logging.StreamHandler()
-            formatter = logging.Formatter(
+            handler: logging.StreamHandler = logging.StreamHandler()
+            formatter: logging.Formatter = logging.Formatter(
                 "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
             )
             handler.setFormatter(formatter)
@@ -196,7 +196,7 @@ class ConfigManager:
         Returns:
             True if provider is configured and enabled
         """
-        config = self.get_provider_config(provider)
+        config: Optional[BaseProviderConfig] = self.get_provider_config(provider)
         return config is not None and config.enabled and config.is_valid()
 
     def get_enabled_providers(self) -> list[CloudProvider]:
